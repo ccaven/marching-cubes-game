@@ -6,7 +6,70 @@
     <title>Test</title>
 </head>
 <body>
-    <canvas id="gl-output"></canvas>
-    <canvas id="ui-output"></canvas>
+
+    <canvas id="gl-canvas"></canvas>
+    <canvas id="ui-canvas"></canvas>
+
+    <!-- Terrain shaders -->
+    <script type="text/glsl" id="terrain.vsh">
+        #version 300 es
+
+        in vec4 a_position;
+        in vec4 a_color;
+        in vec4 a_normal;
+
+        uniform mat4 u_matrix;
+        uniform mat4 m_matrix;
+
+        out vec4 v_position;
+        out float v_light;
+        out vec4 v_color;
+
+        vec3 lightDirection = normalize(vec3(0.5, -0.4, 1.0));
+
+        void main () {
+            v_position = a_position;
+            v_color = a_color;
+            v_light = max(-dot(lightDirection, a_normal.xyz), 0.0);
+            gl_Position = u_matrix * m_matrix * a_position;
+        }
+    </script>
+
+    <script type="text/glsl" id="terrain.fsh">
+        #version 300 es
+
+        precision highp float;
+
+        in vec4 v_position;
+        in float v_light;
+        in vec4 v_color;
+
+        out vec4 outColor;
+
+        void main () {
+            outColor = vec4(v_color.xyz * v_light, 1.0);
+        }
+    </script>
+
+    <!-- WebGL Utils library -->
+    <script src="./js/webgl2-utils.js"></script>
+
+    <!-- Math library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+
+    <!-- 3D array library -->
+    <script src="./js/array3d.js"></script>
+
+    <!-- Mesh library -->
+    <script src="./js/mesh.js"></script>
+
+    <!-- Marching cubes library -->
+    <script src="./js/marching-cubes.js"></script>
+
+    <!-- Noise library -->
+    <script src="./js/noise.js"></script>
+
+    <!-- Main library -->
+    <script src="./js/main.js"></script>
 </body>
 </html>
