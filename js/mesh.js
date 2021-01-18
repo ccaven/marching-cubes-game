@@ -5,15 +5,15 @@ class Mesh {
     static FLAT = 2;
     static AUTOMATIC = 3;
 
-    constructor(position, rotation) {
+    constructor(position, presetData={}) {
         this.position = position || vec3.fromValues(0, 0, 0);
         this.modelMatrix = mat4.create();
         mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
 
-        this.triangles = [];
-        this.vertices = [];
-        this.normals = [];
-        this.colors = [];
+        this.triangles = [] || presetData.triangles;
+        this.vertices = [] || presetData.vertices;
+        this.normals = [] || presetData.normals;
+        this.colors = [] || presetData.colors;
 
         this.vertexBuffer = gl.createBuffer();
         this.normalBuffer = gl.createBuffer();
@@ -136,4 +136,63 @@ class Mesh {
         gl.bindVertexArray(this.vertexArray);
         gl.drawElements(gl.TRIANGLES, this.triangles.length, gl.UNSIGNED_SHORT, 0);
     }
+
+    raycast(origin, direction) {
+        //vec3.add(origin, origin, this.position);
+
+        let minDist = null;
+
+        let tri = [
+            vec3.create(),
+            vec3.create(),
+            vec3.create()
+        ];
+
+        for (let i = 0; i < this.triangles.length; i += 3) {
+            let i1 = this.triangles[i], i2 = this.triangles[i+1], i3 = this.triangles[i+3];
+
+            vec3.set(tri[0], this.vertices[i1*3], this.vertices[i1*3+1], this.vertices[i1*3+2]);
+            vec3.set(tri[1], this.vertices[i2*3], this.vertices[i2*3+1], this.vertices[i2*3+2]);
+            vec3.set(tri[2], this.vertices[i3*3], this.vertices[i3*3+1], this.vertices[i3*3+2]);
+
+            let d = intersectTriangle(origin, direction, tri);
+
+            if (d && (!minDist || minDist > d)) minDist = d;
+        }
+
+        return minDist;
+    }
 }
+
+let intersectTriangle = (function () {
+    let pvec = vec3.create();
+    let qvec = vec3.create();
+    let tvec = vec3.create();
+    let edge1 = vec3.create();
+    let edge2 = vec3.create();
+
+    return function (pt, dir, tri) {
+        vec3.sub(edge1, tri[1], tri[0]);
+        vec3.sub(edge2, tri[2], tri[0]);
+
+        vec3.cross(pvec, dir, edge2);
+
+        let det = vec3.dot(edge1, pvec);
+
+        if (det < .000001) return null;
+
+        vec3.sub(tvec, pt, tri[0]);
+
+        let u = vec3.dot(tvec, pvec);
+        if (u < 0 || u > det) return null;
+
+        vec3.cross(qvec, tvec, edge1);
+
+        let v = vec3.dot(dir, qvec);
+        if (v < 0 || u + v > det) return null;
+
+        let t = vec3.dot(edge2, qvec) / det;
+        if (t < 0) return null;
+        return t;
+    }
+}) ();

@@ -13,9 +13,11 @@ const PLAYER_SPEED = 0.25;
 const SCALE = 1.0;
 const OFFSET = vec3.fromValues(0, 0, 0);
 
+/** @type {HTMLCanvasElement} */
 const glCanvas = getCanvas("gl-canvas", WIDTH, HEIGHT);
 const gl = glCanvas.getContext("webgl2");
 
+/** @type {HTMLCanvasElement} */
 const ctxCanvas = getCanvas("ui-canvas", WIDTH, HEIGHT);
 const ctx = ctxCanvas.getContext("2d");
 
@@ -163,11 +165,16 @@ function main () {
     camera.setMatrix();
     input.initialize();
 
-    let mesh = new Mesh(vec3.fromValues(-8, -8, -8));
+    let mesh = new Mesh(vec3.fromValues(-8, -32, -8));
 
     let marchingCubes = new MarchingCubes(16, 64, 16);
-    marchingCubes.fillVoxels((x, y, z) => noiseGenerator.noise3D(x * 0.05, y * 0.05, z * 0.05, 8) - 0.5);
-    marchingCubes.fillMesh(mesh)
+
+    marchingCubes.fillVoxels((x, y, z) => {
+        let n = noise3D(x * 0.05, y * 0.05, z * 0.05) - 0.5;
+        return (-y * 0.1 - n);
+    }, mesh.position);
+
+    marchingCubes.fillMesh(mesh);
 
     mesh.setColorsByFunction((x, y, z) => {
         return vec3.fromValues(1.0, 1.0, 1.0);
@@ -175,15 +182,52 @@ function main () {
 
     mesh.setBuffers();
 
+    let box = parseObj(PLANE_OBJ);
+    box.setNormals(Mesh.FLAT);
+    box.setColorsByFunction(() => vec3.fromValues(0.8, 0.8, 0.8));
+    box.setBuffers();
+    box.position[1] -= 10;
+
+    console.log(box);
+
     function render () {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
         camera.controls();
         camera.constructMatrix();
         camera.setMatrix();
 
         mesh.render();
+
+        //box.render();
+
+        let orig = vec3.fromValues(camera.x, camera.y, camera.z);
+        let dir = vec3.fromValues(camera.projectionMatrix[2], camera.projectionMatrix[6], camera.projectionMatrix[10]);
+        let t = mesh.raycast(orig, dir);
+        console.log(t);
+
+        if (t && t > 0) {
+            let p = vec3.create();
+            vec3.scale(p, dir, t);
+            vec3.add(p, p, orig);
+
+            p = vec4.fromValues(p[0], p[1], p[2], 1.0);
+
+            vec4.transformMat4(p, p, camera.projectionMatrix);
+
+            let sx = WIDTH / 2 + p[0] * WIDTH / 2;
+            let sy = HEIGHT / 2 + p[1] * WIDTH / 2;
+            let r = 5;
+            ctx.fillStyle = "#ffffff";
+            ctx.arc(sx, sy, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+
+        //console.log(t);
+
         input.update();
 
         requestAnimationFrame(render);
