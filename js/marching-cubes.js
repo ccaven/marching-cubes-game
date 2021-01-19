@@ -410,7 +410,7 @@ class MarchingCubes {
         mesh.setVertices(new Float32Array(tempArr));
         mesh.setTriangles(Mesh.AUTOMATIC);
 
-        /*
+
         let normals = new Float32Array(mesh.vertices.length);
 
         for (let i = 0; i < normals.length; i += 9) {
@@ -436,9 +436,9 @@ class MarchingCubes {
             normals[i+8] = n[2];
 
 
-        }*/
+        }
 
-        mesh.setNormals(Mesh.FLAT);
+        mesh.setNormals();
 
         tempArr = null;
 

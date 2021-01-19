@@ -23,7 +23,7 @@ const ctx = ctxCanvas.getContext("2d");
 
 /* Terrain program */
 const program = createProgramObject(gl, "terrain.vsh", "terrain.fsh");
-console.log(program);
+
 /* Holds environment variables */
 const environment = {
     clock: 0.0,
@@ -100,7 +100,7 @@ const statistics = {
 
 /* Handles camera */
 const camera = {
-    x: 0, y: 0, z: 10,
+    x: 0, y: 0, z: 0,
     pitch: 0.0,
     yaw: 0.0,
     FOV: Math.PI * 0.50,
@@ -121,7 +121,7 @@ const camera = {
 };
 
 const player = {
-    x: 0, y: 0, z: 10,
+    x: 0, y: 10, z: 0,
     velocity: vec3.fromValues(0, 0, 0),
 
     setCamera () {
@@ -142,30 +142,36 @@ const player = {
         camera.yaw += input.movementX * 0.001 * camera.sensitivity;
 
         if (input.keys.w) {
-            this.x += Math.sin(camera.yaw) * PLAYER_SPEED;
-            this.z -= Math.cos(camera.yaw) * PLAYER_SPEED;
+            this.velocity[0] += Math.sin(camera.yaw) * PLAYER_SPEED;
+            this.velocity[2] -= Math.cos(camera.yaw) * PLAYER_SPEED;
         }
 
         if (input.keys.s) {
-            this.x -= Math.sin(camera.yaw) * PLAYER_SPEED;
-            this.z += Math.cos(camera.yaw) * PLAYER_SPEED;
+            this.velocity[0] -= Math.sin(camera.yaw) * PLAYER_SPEED;
+            this.velocity[2] += Math.cos(camera.yaw) * PLAYER_SPEED;
         }
 
         if (input.keys.d) {
-            this.x += Math.cos(camera.yaw) * PLAYER_SPEED;
-            this.z += Math.sin(camera.yaw) * PLAYER_SPEED;
+            this.velocity[0] += Math.cos(camera.yaw) * PLAYER_SPEED;
+            this.velocity[2] += Math.sin(camera.yaw) * PLAYER_SPEED;
         }
 
         if (input.keys.a) {
-            this.x -= Math.cos(camera.yaw) * PLAYER_SPEED;
-            this.z -= Math.sin(camera.yaw) * PLAYER_SPEED;
+            this.velocity[0] -= Math.cos(camera.yaw) * PLAYER_SPEED;
+            this.velocity[2] -= Math.sin(camera.yaw) * PLAYER_SPEED;
         }
 
-        if (input.keys[" "])
-            this.y += PLAYER_SPEED;
+        if (input.keys[" "]) this.velocity[1] += PLAYER_SPEED;
 
-        if (input.keys.shift)
-            this.y -= PLAYER_SPEED;
+        if (input.keys.shift) this.velocity[1] -= PLAYER_SPEED;
+
+        this.velocity[0] *= 0.9;
+        this.velocity[1] *= 0.9;
+        this.velocity[2] *= 0.9;
+
+        this.x += this.velocity[0];
+        this.y += this.velocity[1];
+        this.z += this.velocity[2];
     }
 
 };
