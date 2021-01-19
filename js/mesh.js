@@ -73,6 +73,7 @@ class Mesh {
         if(normals === Mesh.SMOOTH) {
 
             // Generate smooth shading
+            console.error("Smooth shading not implemented!");
 
         } else if (normals === Mesh.FLAT) {
 

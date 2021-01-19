@@ -105,7 +105,7 @@ const camera = {
     yaw: 0.0,
     FOV: Math.PI * 0.50,
     zNear: 0.3,
-    zFar: 100.0,
+    zFar: 300.0,
     sensitivity: 1.0,
     constructMatrix() {
         this.projectionMatrix = mat4.create();
@@ -118,29 +118,47 @@ const camera = {
     setMatrix() {
         gl.uniformMatrix4fv(program.uniformLocations.u_matrix.location, false, camera.projectionMatrix);
     },
+};
 
-    controls() {
-        this.pitch += input.movementY * 0.001 * this.sensitivity;
-        this.yaw += input.movementX * 0.001 * this.sensitivity;
+const player = {
+    x: 0, y: 0, z: 10,
+    velocity: vec3.fromValues(0, 0, 0),
+
+    setCamera () {
+        camera.x = this.x;
+        camera.y = this.y;
+        camera.z = this.z;
+
+        camera.constructMatrix();
+        camera.setMatrix();
+    },
+
+    collideWithChunk (chunk) {
+
+    },
+
+    controls () {
+        camera.pitch += input.movementY * 0.001 * camera.sensitivity;
+        camera.yaw += input.movementX * 0.001 * camera.sensitivity;
 
         if (input.keys.w) {
-            this.x += Math.sin(this.yaw) * PLAYER_SPEED;
-            this.z -= Math.cos(this.yaw) * PLAYER_SPEED;
+            this.x += Math.sin(camera.yaw) * PLAYER_SPEED;
+            this.z -= Math.cos(camera.yaw) * PLAYER_SPEED;
         }
 
         if (input.keys.s) {
-            this.x -= Math.sin(this.yaw) * PLAYER_SPEED;
-            this.z += Math.cos(this.yaw) * PLAYER_SPEED;
+            this.x -= Math.sin(camera.yaw) * PLAYER_SPEED;
+            this.z += Math.cos(camera.yaw) * PLAYER_SPEED;
         }
 
         if (input.keys.d) {
-            this.x += Math.cos(this.yaw) * PLAYER_SPEED;
-            this.z += Math.sin(this.yaw) * PLAYER_SPEED;
+            this.x += Math.cos(camera.yaw) * PLAYER_SPEED;
+            this.z += Math.sin(camera.yaw) * PLAYER_SPEED;
         }
 
         if (input.keys.a) {
-            this.x -= Math.cos(this.yaw) * PLAYER_SPEED;
-            this.z -= Math.sin(this.yaw) * PLAYER_SPEED;
+            this.x -= Math.cos(camera.yaw) * PLAYER_SPEED;
+            this.z -= Math.sin(camera.yaw) * PLAYER_SPEED;
         }
 
         if (input.keys[" "])
@@ -148,8 +166,11 @@ const camera = {
 
         if (input.keys.shift)
             this.y -= PLAYER_SPEED;
-    },
+    }
+
 };
+
+const world = new World();
 
 function main () {
     gl.viewport(0, 0, WIDTH, HEIGHT);
@@ -165,23 +186,9 @@ function main () {
     camera.setMatrix();
     input.initialize();
 
-    let mesh = new Mesh(vec3.fromValues(-8, -32, -8));
+    world.fillLoadingQueue();
 
-    let marchingCubes = new MarchingCubes(16, 64, 16);
-
-    marchingCubes.fillVoxels((x, y, z) => {
-        let n = noise3D(x * 0.05, y * 0.05, z * 0.05) - 0.5;
-        return (-y * 0.1 - n);
-    }, mesh.position);
-
-    marchingCubes.fillMesh(mesh);
-
-    mesh.setColorsByFunction((x, y, z) => {
-        return vec3.fromValues(1.0, 1.0, 1.0);
-    });
-
-    mesh.setBuffers();
-
+    /*
     let box = parseObj(PLANE_OBJ);
     box.setNormals(Mesh.FLAT);
     box.setColorsByFunction(() => vec3.fromValues(0.8, 0.8, 0.8));
@@ -189,20 +196,24 @@ function main () {
     box.position[1] -= 10;
 
     console.log(box);
+    */
 
     function render () {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-        camera.controls();
-        camera.constructMatrix();
-        camera.setMatrix();
+        player.controls();
+        player.setCamera();
 
-        mesh.render();
+        world.fillLoadingQueue();
+        world.loadChunks();
+
+        world.render();
 
         //box.render();
 
+        /*
         let orig = vec3.fromValues(camera.x, camera.y, camera.z);
         let dir = vec3.fromValues(camera.projectionMatrix[2], camera.projectionMatrix[6], camera.projectionMatrix[10]);
         let t = mesh.raycast(orig, dir);
@@ -224,9 +235,8 @@ function main () {
             ctx.arc(sx, sy, r, 0, Math.PI * 2);
             ctx.fill();
         }
+        */
 
-
-        //console.log(t);
 
         input.update();
 

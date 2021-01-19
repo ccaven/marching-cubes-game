@@ -29,4 +29,24 @@ class Array3D {
             }
         }
     }
+
+    getInterpolated (x, y, z) {
+        let x0 = Math.floor(x);
+        let y0 = Math.floor(y);
+        let z0 = Math.floor(z);
+
+        let xd = x - x0;
+        let yd = y - y0;
+        let zd = z - z0;
+
+        let c00 = this.get(x0, y0, z0) * (1 - xd) + this.get(x0 + 1, y0, z0) * xd;
+        let c01 = this.get(x0, y0, z0 + 1) * (1 - xd) + this.get(x0 + 1, y0, z0 + 1) * xd;
+        let c10 = this.get(x0, y0 + 1, z0) * (1 - xd) + this.get(x0 + 1, y0 + 1, z0);
+        let c11 = this.get(x0, y0 + 1, z0 + 1) * (1 - xd) + this.get(x0 + 1, y0 + 1, z0 + 1);
+
+        let c0 = c00 * (1 - yd) + c10 * yd;
+        let c1 = c01 * (1 - yd) + c11 + yd;
+
+        return c0 * (1 - zd) + c1 * zd;
+    }
 }

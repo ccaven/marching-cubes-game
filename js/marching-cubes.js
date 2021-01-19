@@ -317,6 +317,15 @@ class MarchingCubes {
         this.voxels.fill(f, offset);
     }
 
+    getGradient (x, y, z) {
+        const h = 0.0001;
+        return vec3.fromValues(
+            (this.voxels.getInterpolated(x + h, y, z) - this.voxels.getInterpolated(x - h, y, z)) / (h),
+            (this.voxels.getInterpolated(x, y + h, z) - this.voxels.getInterpolated(x, y - h, z)) / (h),
+            (this.voxels.getInterpolated(x, y, z + h) - this.voxels.getInterpolated(x, y, z - h)) / (h),
+        );
+    }
+
     getConfig (ix, iy, iz) {
         let c = 0;
         c |= (this.voxels.get(ix, iy, iz) < ISO_LEVEL);
@@ -400,6 +409,35 @@ class MarchingCubes {
 
         mesh.setVertices(new Float32Array(tempArr));
         mesh.setTriangles(Mesh.AUTOMATIC);
+
+        /*
+        let normals = new Float32Array(mesh.vertices.length);
+
+        for (let i = 0; i < normals.length; i += 9) {
+
+            let n = this.getGradient(
+                (mesh.vertices[i + 0] + mesh.vertices[i + 3] + mesh.vertices[i + 6]) / 3,
+                (mesh.vertices[i + 1] + mesh.vertices[i + 4] + mesh.vertices[i + 7]) / 3,
+                (mesh.vertices[i + 2] + mesh.vertices[i + 5] + mesh.vertices[i + 8]) / 3,
+            );
+
+            vec3.normalize(n, n);
+
+            normals[i] = n[0];
+            normals[i+1] = n[1];
+            normals[i+2] = n[2];
+
+            normals[i+3] = n[0];
+            normals[i+4] = n[1];
+            normals[i+5] = n[2];
+
+            normals[i+6] = n[0];
+            normals[i+7] = n[1];
+            normals[i+8] = n[2];
+
+
+        }*/
+
         mesh.setNormals(Mesh.FLAT);
 
         tempArr = null;
