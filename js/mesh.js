@@ -69,14 +69,7 @@ class Mesh {
     }
 
     setNormals(normals=Mesh.FLAT) {
-
-        if(normals === Mesh.SMOOTH) {
-
-            // Generate smooth shading
-            console.error("Smooth shading not implemented!");
-
-        } else if (normals === Mesh.FLAT) {
-
+        if (normals === Mesh.FLAT) {
             // Generate flat shading
             this.normals = new Float32Array(this.vertices.length);
             for (let i = 0; i < this.normals.length; i += 3) {
@@ -139,7 +132,9 @@ class Mesh {
     }
 
     raycast(origin, direction) {
-        //vec3.add(origin, origin, this.position);
+        vec3.sub(origin, origin, this.position);
+
+        console.log(origin, direction);
 
         let minDist = null;
 
@@ -156,44 +151,42 @@ class Mesh {
             vec3.set(tri[1], this.vertices[i2*3], this.vertices[i2*3+1], this.vertices[i2*3+2]);
             vec3.set(tri[2], this.vertices[i3*3], this.vertices[i3*3+1], this.vertices[i3*3+2]);
 
-            let d = intersectTriangle(origin, direction, tri);
+            let d = intersectTriangle(origin, direction, tri[0], tri[1], tri[2]);
 
-            if (d && (!minDist || minDist > d)) minDist = d;
+            if (d && d > 0 && (!minDist || minDist > d)) {
+                minDist = d;
+                console.log(minDist);
+            }
         }
 
         return minDist;
     }
 }
 
+
 let intersectTriangle = (function () {
-    let pvec = vec3.create();
-    let qvec = vec3.create();
-    let tvec = vec3.create();
-    let edge1 = vec3.create();
-    let edge2 = vec3.create();
+    let v1v0 = vec3.create();
+    var v2v0 = vec3.create();
 
-    return function (pt, dir, tri) {
-        vec3.sub(edge1, tri[1], tri[0]);
-        vec3.sub(edge2, tri[2], tri[0]);
+    var n = vec3.create();
+    var q = vec3.create();
 
-        vec3.cross(pvec, dir, edge2);
+    return function (ro, rd, v0, v1, v2) {
+        vec3.sub(v1v0, v1, v0);
+        vec3.sub(v2v0, v2, v0);
 
-        let det = vec3.dot(edge1, pvec);
+        vec3.cross(q, rd, v2v0);
+        let det = vec3.dot(v1v0, q);
+        let invDet = 1 / det;
 
-        if (det < .000001) return null;
+        vec3.sub(n, ro, v0);
+        let u = vec3.dot(n, q) * invDet;
+        if (u < 0 || u > 1) return null;
 
-        vec3.sub(tvec, pt, tri[0]);
+        vec3.cross(q, n, v1v0);
+        let v = vec3.dot(rd, q) * invDet;
+        if (v < 0 || u + v > 1) return null;
 
-        let u = vec3.dot(tvec, pvec);
-        if (u < 0 || u > det) return null;
-
-        vec3.cross(qvec, tvec, edge1);
-
-        let v = vec3.dot(dir, qvec);
-        if (v < 0 || u + v > det) return null;
-
-        let t = vec3.dot(edge2, qvec) / det;
-        if (t < 0) return null;
-        return t;
-    }
+        return vec3.dot(v2v0, q) * invDet;
+    };
 }) ();

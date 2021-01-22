@@ -22,14 +22,13 @@ function craterHeight (d) {
 
 function mapDefinition (x, y, z) {
 
-    let v = -y+5;
+    let v = -y + 5;
 
-    v += (noise3D(x * 0.01, y * 0.01, z * 0.01) - 0.5) * 10;
+    if (Math.abs(v) < 20.0) v += (noise3D(x * 0.01, y * 0.01, z * 0.01) - 0.5) * 20;
 
-    let d = Math.sqrt(x * x + z * z);
+    if (Math.abs(v) < 10.0) v += (noise3D(x * 0.05, y * 0.05, z * 0.05) - 0.5) * 10;
 
-    v += craterHeight(d * 0.05) * 10.0;
-
+    if (Math.abs(v) < 40.0) v += craterHeight(Math.sqrt(x * x + z * z) * 0.05) * 20.0;
 
     return v;
 }
@@ -44,6 +43,41 @@ function mapGradient (x, y, z) {
 
     );
 }
+
+let triangleSDF = (function () {
+
+    /* TOOD: finish copying glsl sdf */
+
+    let ba = vec3.create();
+    let pa = vec3.create();
+
+    let cb = vec3.create();
+    let pb = vec3.create();
+
+    let ac = vec3.create();
+    let pc = vec3.create();
+
+    let nor = vec3.create();
+
+    return function (p, a, b, c) {
+        vec3.sub(ba, b, a);
+        vec3.sub(pa, p, a);
+        vec3.sub(cb, c, b);
+        vec3.sub(pb, p, b);
+        vec3.sub(ac, a, c);
+        vec3.sub(pc, p, c);
+
+        vec3.cross(nor, ba, ac);
+
+        let conditional = Math.sign(vec3.dot(vec3.cross(ba, nor), pa)) + Math.sign(vec3.dot(vec3.cross(cb, nor), pb)) + Math.sign(vec3.dot(vec3.cross(ac, nor), pc)) < 2.0;
+
+        if (conditional) {
+
+
+
+        }
+    };
+}) ();
 
 class Chunk {
     constructor (x, z) {
@@ -71,6 +105,29 @@ class Chunk {
         this.mesh.setBuffers();
     }
 
+    collideWithPlayer () {
+
+        // local reference
+        let tris = this.mesh.triangles;
+        let verts = this.mesh.vertices;
+
+        let v0 = vec3.create();
+        let v1 = vec3.create();
+        let v2 = vec3.create();
+
+        for (let i = 0; i < tris.length; i += 3) {
+
+            vec3.set(v0, verts[tris[i]*3], verts[tris[i]*3+1], verts[tris[i]*3+2]);
+            vec3.set(v0, verts[tris[i+1]*3], verts[tris[i+1]*3+1], verts[tris[i+1]*3+2]);
+            vec3.set(v0, verts[tris[i+2]*3], verts[tris[i+2]*3+1], verts[tris[i+2]*3+2]);
+
+            // check for collision
+
+
+        }
+
+    }
+
     render () {
         this.mesh.render();
     }
@@ -96,7 +153,7 @@ class World {
     }
 
     fillLoadingQueue () {
-        let s = 5;
+        let s = 10;
 
         let px = Math.floor(player.x / CHUNK_SIZE) * CHUNK_SIZE;
         let pz = Math.floor(player.z / CHUNK_SIZE) * CHUNK_SIZE;
@@ -130,46 +187,59 @@ class World {
     }
 
     loadChunks () {
-        if (!this.loadQueue.length) return;
+        const numLoad = 1;
+        for (let i = 0; i < numLoad; i ++) {
+            if (!this.loadQueue.length) return;
 
-        let chunk = this.loadQueue.shift();
-        chunk.populateMap(mapDefinition);
-        chunk.generateMesh();
+            let chunk = this.loadQueue.shift();
+            chunk.populateMap(mapDefinition);
+            chunk.generateMesh();
 
-        /*
-        let normals = new Float32Array(chunk.mesh.vertices.length);
+            this.chunkReference[chunk.x + "," + chunk.z] = this.chunks.length;
+            this.chunks.push(chunk);
+        }
+    }
 
-        for (let i = 0; i < normals.length; i += 9) {
+    raycast () {
 
-            let n = mapGradient(
-                (chunk.mesh.vertices[i + 0] + chunk.mesh.vertices[i + 3] + chunk.mesh.vertices[i + 6]) / 3 + chunk.x,
-                (chunk.mesh.vertices[i + 1] + chunk.mesh.vertices[i + 4] + chunk.mesh.vertices[i + 7]) / 3 + chunk.y,
-                (chunk.mesh.vertices[i + 2] + chunk.mesh.vertices[i + 5] + chunk.mesh.vertices[i + 8]) / 3 + chunk.z,
-            );
+        let ro = vec3.fromValues(player.x, player.y, player.z);
+        let rd = vec3.fromValues(
+            camera.projectionMatrix[2],
+            camera.projectionMatrix[6],
+            camera.projectionMatrix[10]
+        );
 
-            vec3.normalize(n, n);
+        let px = Math.floor(player.x / CHUNK_SIZE) * CHUNK_SIZE;
+        let pz = Math.floor(player.z / CHUNK_SIZE) * CHUNK_SIZE;
 
-            normals[i] = -n[0];
-            normals[i+1] = -n[1];
-            normals[i+2] = -n[2];
+        let mt = -1;
 
-            normals[i+3] = -n[0];
-            normals[i+4] = -n[1];
-            normals[i+5] = -n[2];
+        for (let dx = -1; dx <= 1; dx ++) {
+            for (let dz = -1; dz <= 1; dz ++) {
 
-            normals[i+6] = -n[0];
-            normals[i+7] = -n[1];
-            normals[i+8] = -n[2];
+                let cx = px + dx * CHUNK_SIZE;
+                let cz = pz + dz * CHUNK_SIZE;
 
 
+
+                if (this.chunkExists(cx, cz)) {
+
+                    let referenceIndex = cx + "," + cz;
+
+                    let chunkIndex = this.chunkReference[referenceIndex];
+
+                    let chunk = this.chunks[chunkIndex];
+
+                    let t = chunk.mesh.raycast(ro, rd);
+
+                    console.log(t);
+
+                    if (t && t > 0 && (mt < 0 || mt > t)) mt = t;
+                }
+            }
         }
 
-        chunk.mesh.setNormals(normals);
-        chunk.mesh.setBuffers();
-        */
-
-        this.chunkReference[chunk.x + "," + chunk.z] = this.chunks.length;
-        this.chunks.push(chunk);
+        return mt > 0 ? mt : null;
     }
 
     render () {

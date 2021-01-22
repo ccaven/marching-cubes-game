@@ -107,8 +107,8 @@ const camera = {
     zNear: 0.3,
     zFar: 300.0,
     sensitivity: 1.0,
+    projectionMatrix: mat4.create(),
     constructMatrix() {
-        this.projectionMatrix = mat4.create();
         mat4.perspective(this.projectionMatrix, this.FOV, ASPECT, this.zNear, this.zFar);
         mat4.rotate(this.projectionMatrix, this.projectionMatrix, this.pitch, [1, 0, 0]);
         mat4.rotate(this.projectionMatrix, this.projectionMatrix, this.yaw, [0, 1, 0]);
@@ -124,6 +124,9 @@ const player = {
     x: 0, y: 10, z: 0,
     velocity: vec3.fromValues(0, 0, 0),
 
+    /* Spherical hitbox */
+    radius: 1.0,
+
     setCamera () {
         camera.x = this.x;
         camera.y = this.y;
@@ -131,10 +134,6 @@ const player = {
 
         camera.constructMatrix();
         camera.setMatrix();
-    },
-
-    collideWithChunk (chunk) {
-
     },
 
     controls () {
@@ -193,6 +192,7 @@ function main () {
     input.initialize();
 
     world.fillLoadingQueue();
+    world.loadChunks();
 
     /*
     let box = parseObj(PLANE_OBJ);
@@ -212,37 +212,16 @@ function main () {
         player.controls();
         player.setCamera();
 
+
         world.fillLoadingQueue();
         world.loadChunks();
 
         world.render();
 
-        //box.render();
-
-        /*
-        let orig = vec3.fromValues(camera.x, camera.y, camera.z);
-        let dir = vec3.fromValues(camera.projectionMatrix[2], camera.projectionMatrix[6], camera.projectionMatrix[10]);
-        let t = mesh.raycast(orig, dir);
-        console.log(t);
-
-        if (t && t > 0) {
-            let p = vec3.create();
-            vec3.scale(p, dir, t);
-            vec3.add(p, p, orig);
-
-            p = vec4.fromValues(p[0], p[1], p[2], 1.0);
-
-            vec4.transformMat4(p, p, camera.projectionMatrix);
-
-            let sx = WIDTH / 2 + p[0] * WIDTH / 2;
-            let sy = HEIGHT / 2 + p[1] * WIDTH / 2;
-            let r = 5;
-            ctx.fillStyle = "#ffffff";
-            ctx.arc(sx, sy, r, 0, Math.PI * 2);
-            ctx.fill();
+        if (input.mouseDown) {
+            let t = world.raycast();
+            console.log(t);
         }
-        */
-
 
         input.update();
 

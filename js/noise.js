@@ -133,7 +133,7 @@ function openSimplexNoise(clientSeed) {
 
 const noiseGenerator = openSimplexNoise(0);
 
-function noise3D (x, y, z, octaves=4) {
+function noise3D (x, y, z, octaves=3) {
     let scl = 1.0, v = 0.0;
     for (let i = 0; i < octaves; i ++) {
         v += noiseGenerator(x * scl, y * scl, z * scl) / scl * 0.5;

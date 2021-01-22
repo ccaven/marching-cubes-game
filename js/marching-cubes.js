@@ -415,13 +415,14 @@ class MarchingCubes {
 
         for (let i = 0; i < normals.length; i += 9) {
 
-            let n = this.getGradient(
+            let n = this.voxels.calculateGradient(
                 (mesh.vertices[i + 0] + mesh.vertices[i + 3] + mesh.vertices[i + 6]) / 3,
                 (mesh.vertices[i + 1] + mesh.vertices[i + 4] + mesh.vertices[i + 7]) / 3,
                 (mesh.vertices[i + 2] + mesh.vertices[i + 5] + mesh.vertices[i + 8]) / 3,
             );
 
             vec3.normalize(n, n);
+            vec3.scale(n, n, -1);
 
             normals[i] = n[0];
             normals[i+1] = n[1];
@@ -438,8 +439,8 @@ class MarchingCubes {
 
         }
 
-        mesh.setNormals();
-
+        mesh.setNormals(normals);
+        //mesh.setNormals(Mesh.FLAT);
         tempArr = null;
 
     }

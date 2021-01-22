@@ -1,3 +1,11 @@
+
+
+function blerp (a, b, c, d, x, y) {
+    let v0 = a + (b - a) * x;
+    let v1 = c + (d - c) * x;
+    return v0 + (v1 - v0) * y;
+}
+
 class Array3D {
     constructor (width, height, depth) {
         this.size = [width, height, depth];
@@ -48,5 +56,28 @@ class Array3D {
         let c1 = c01 * (1 - yd) + c11 + yd;
 
         return c0 * (1 - zd) + c1 * zd;
+    }
+
+    calculateGradient (x, y, z) {
+        let ix = Math.floor(x);
+        let iy = Math.floor(y);
+        let iz = Math.floor(z)
+
+        let fx = x - ix, fy = y - iy, fz = z - iz;
+
+        let v000 = this.get(ix, iy, iz);
+        let v001 = this.get(ix, iy, iz + 1);
+        let v010 = this.get(ix, iy + 1, iz);
+        let v011 = this.get(ix, iy + 1, iz + 1);
+        let v100 = this.get(ix + 1, iy, iz);
+        let v101 = this.get(ix + 1, iy, iz + 1);
+        let v110 = this.get(ix + 1, iy + 1, iz);
+        let v111 = this.get(ix + 1, iy + 1, iz + 1);
+
+        let dvdx = blerp(v100, v110, v101, v111, fy, fz) - blerp(v000, v010, v001, v011, fy, fz);
+        let dvdy = blerp(v010, v110, v011, v111, fx, fz) - blerp(v000, v100, v001, v101, fx, fz);
+        let dvdz = blerp(v001, v101, v011, v111, fx, fy) - blerp(v000, v100, v010, v110, fx, fy);
+
+        return vec3.fromValues(dvdx, dvdy, dvdz);
     }
 }
