@@ -10,10 +10,10 @@ class Mesh {
         this.modelMatrix = mat4.create();
         mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
 
-        this.triangles = [] || presetData.triangles;
-        this.vertices = [] || presetData.vertices;
-        this.normals = [] || presetData.normals;
-        this.colors = [] || presetData.colors;
+        this.triangles = presetData.triangles || [];
+        this.vertices = presetData.vertices || [];
+        this.normals = presetData.normals || [];
+        this.colors = presetData.colors || [];
 
         this.vertexBuffer = gl.createBuffer();
         this.normalBuffer = gl.createBuffer();
@@ -35,6 +35,13 @@ class Mesh {
 
         gl.bindVertexArray(null);
 
+        this.elastic = false;
+
+    }
+
+    setPosition(x, y, z) {
+        this.position.set(arguments, 0);
+        mat4.translate(this.modelMatrix, mat4.create(), this.position);
     }
 
     setVertices(vertices) {
@@ -42,10 +49,8 @@ class Mesh {
     }
 
     setTriangles(triangles=Mesh.AUTOMATIC) {
-        if (triangles === Mesh.AUTOMATIC) {
-            this.triangles = new Uint16Array(this.vertices.length / 3);
-            for (let i = 0; i < this.triangles.length; i ++) this.triangles[i] = i;
-        } else this.triangles = triangles;
+        if (triangles == Mesh.AUTOMATIC) this.triangles = (new Uint16Array(this.vertices.length / 3)).map((e, i) => i);
+        else this.triangles = triangles;
     }
 
     setBuffers() {
@@ -64,31 +69,29 @@ class Mesh {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.triangles, gl.STATIC_DRAW);
 
         gl.bindVertexArray(null);
-
-
     }
 
     setNormals(normals=Mesh.FLAT) {
         if (normals === Mesh.FLAT) {
             // Generate flat shading
             this.normals = new Float32Array(this.vertices.length);
-            for (let i = 0; i < this.normals.length; i += 3) {
-                let i1 = this.triangles[(i/9|0)*3];
-                let i2 = this.triangles[(i/9|0)*3+1];
-                let i3 = this.triangles[(i/9|0)*3+2];
 
-                let v1 = vec3.fromValues(this.vertices[i1*3], this.vertices[i1*3+1], this.vertices[i1*3+2]);
-                let v2 = vec3.fromValues(this.vertices[i2*3], this.vertices[i2*3+1], this.vertices[i2*3+2]);
-                let v3 = vec3.fromValues(this.vertices[i3*3], this.vertices[i3*3+1], this.vertices[i3*3+2]);
+            for (let i = 0; i < this.normals.length; i += 9) {
+
+                let [i1, i2, i3] = this.triangles.slice(i / 3, i / 3 + 3);
+
+                let v1 = this.vertices.slice(i1 * 3, i1 * 3 + 3);
+                let v2 = this.vertices.slice(i2 * 3, i2 * 3 + 3);
+                let v3 = this.vertices.slice(i3 * 3, i3 * 3 + 3);
 
                 vec3.sub(v1, v1, v2);
                 vec3.sub(v2, v2, v3);
                 vec3.cross(v1, v1, v2);
                 vec3.normalize(v1, v1);
 
-                this.normals[i] = v1[0];
-                this.normals[i+1] = v1[1];
-                this.normals[i+2] = v1[2];
+                this.normals.set(v1, i);
+                this.normals.set(v1, i + 3);
+                this.normals.set(v1, i + 6);
             }
 
         } else this.normals = normals;
@@ -99,29 +102,90 @@ class Mesh {
         this.colors = new Float32Array(this.vertices.length);
 
         for (let i = 0; i < this.colors.length; i += 9) {
-            let j = (i / 9 | 0) * 3;
+            let avgX = this.vertices[i + 0] + this.vertices[i + 3] + this.vertices[i + 6];
+            let avgY = this.vertices[i + 1] + this.vertices[i + 4] + this.vertices[i + 7];
+            let avgZ = this.vertices[i + 2] + this.vertices[i + 5] + this.vertices[i + 8];
 
-            let avgX = this.vertices[j*3+0] + this.vertices[j*3+3] + this.vertices[j*3+6];
-            let avgY = this.vertices[j*3+1] + this.vertices[j*3+4] + this.vertices[j*3+7];
-            let avgZ = this.vertices[j*3+2] + this.vertices[j*3+5] + this.vertices[j*3+8];
+            let c = f(avgX / 3 + this.position[0], avgY / 3 + this.position[1], avgZ / 3 + this.position[2]);
 
-            avgX *= 0.333;
-            avgY *= 0.333;
-            avgZ *= 0.333;
+            this.colors.set(c, i);
+            this.colors.set(c, i + 3);
+            this.colors.set(c, i + 6);
 
-            let c = f(avgX + this.position[0], avgY + this.position[1], avgZ + this.position[2]);
+        }
+    }
 
-            this.colors[i] = c[0];
-            this.colors[i+1] = c[1];
-            this.colors[i+2] = c[2];
+    collideWithPlayer () {
 
-            this.colors[i+3] = c[0];
-            this.colors[i+4] = c[1];
-            this.colors[i+5] = c[2];
+        let px = player.x - this.position[0];
+        let py = player.y - this.position[1];
+        let pz = player.z - this.position[2];
 
-            this.colors[i+6] = c[0];
-            this.colors[i+7] = c[1];
-            this.colors[i+8] = c[2];
+        const n = this.triangles.length;
+        for (let i = 0; i < n; i += 3) {
+
+            // Calculate triangle indices
+            let [i0, i1, i2] = this.triangles.slice(i, i + 3);
+
+            // Calculate triangle normal
+            let [normalX, normalY, normalZ] = this.normals.slice(i0 * 3, i0 * 3 + 3);
+
+            // Calculate triangle vertices
+            let [v0x, v0y, v0z] = this.vertices.slice(i0 * 3, i0 * 3 + 3);
+            let [v1x, v1y, v1z] = this.vertices.slice(i1 * 3, i1 * 3 + 3);
+            let [v2x, v2y, v2z] = this.vertices.slice(i2 * 3, i2 * 3 + 3);
+
+            // Calculate triangle diagonals
+            let [d0x, d0y, d0z] = [v1x - v0x, v1y - v0y, v1z - v0z];
+            let [d1x, d1y, d1z] = [v2x - v0x, v2y - v0y, v2z - v0z];
+
+            // Calculate local point
+            let [localX, localY, localZ] = [px - v0x, py - v0y, pz - v0z];
+
+            // Calculate closest point on plane
+            let [planeX, planeY, planeZ] = projectToPlane(localX, localY, localZ, normalX, normalY, normalZ);
+
+            // Calculate uv coordinates
+            let u = planeX * d0x + planeY * d0y + planeZ * d0z;
+            let v = planeX * d1x + planeY * d1y + planeZ * d1z;
+            [u, v] = snapToTriangle(u, v);
+
+            // Calculate closest point
+            let [cx, cy, cz] = [
+                v0x + d0x * u + d1x * v,
+                v0y + d0y * u + d1y * v,
+                v0z + d0z * u + d1z * v
+            ];
+
+            // Calculate vector pointing towards player
+            let [dx, dy, dz] = [px - cx, py - cy, pz - cz];
+
+            // Calculate distance squared
+            let dstSquared = dx * dx + dy * dy + dz * dz;
+
+            if (dstSquared < player.radius * player.radius) {
+
+                let dst = Math.sqrt(dstSquared);
+
+                // Correct position
+                player.x = this.position[0] + cx + dx / dst * player.radius;
+                player.y = this.position[1] + cy + dy / dst * player.radius;
+                player.z = this.position[2] + cz + dz / dst * player.radius;
+
+                // Correct velocity
+                dst = 1 / dst;
+
+                [dx, dy, dz] = [dx * dst, dy * dst, dz * dst];
+
+                let dp = dx * player.velocity[0] + dy * player.velocity[1] + dz * player.velocity[2];
+
+                dp *= (this.elastic + 1.0);
+
+                player.velocity[0] -= dp * dx;
+                player.velocity[1] -= dp * dy;
+                player.velocity[2] -= dp * dz;
+
+            }
         }
     }
 
@@ -134,29 +198,17 @@ class Mesh {
     raycast(origin, direction) {
         vec3.sub(origin, origin, this.position);
 
-        console.log(origin, direction);
-
         let minDist = null;
 
-        let tri = [
-            vec3.create(),
-            vec3.create(),
-            vec3.create()
-        ];
-
         for (let i = 0; i < this.triangles.length; i += 3) {
-            let i1 = this.triangles[i], i2 = this.triangles[i+1], i3 = this.triangles[i+3];
+            let [i0, i1, i2] = this.triangles.slice(i, i + 3);
 
-            vec3.set(tri[0], this.vertices[i1*3], this.vertices[i1*3+1], this.vertices[i1*3+2]);
-            vec3.set(tri[1], this.vertices[i2*3], this.vertices[i2*3+1], this.vertices[i2*3+2]);
-            vec3.set(tri[2], this.vertices[i3*3], this.vertices[i3*3+1], this.vertices[i3*3+2]);
+            let d = intersectTriangle(origin, direction,
+                this.vertices.slice(i0 * 3, i0 * 3 + 3),
+                this.vertices.slice(i1 * 3, i1 * 3 + 3),
+                this.vertices.slice(i2 * 3, i1 * 3 + 3));
 
-            let d = intersectTriangle(origin, direction, tri[0], tri[1], tri[2]);
-
-            if (d && d > 0 && (!minDist || minDist > d)) {
-                minDist = d;
-                console.log(minDist);
-            }
+            if (d && d > 0 && (!minDist || minDist > d)) minDist = d;
         }
 
         return minDist;
@@ -190,3 +242,20 @@ let intersectTriangle = (function () {
         return vec3.dot(v2v0, q) * invDet;
     };
 }) ();
+
+function projectToPlane (localX, localY, localZ, normalX, normalY, normalZ) {
+    let d = localX * normalX + localY * normalY + localZ * normalZ;
+    return [
+        localX - d * normalX,
+        localY - d * normalY,
+        localZ - d * normalZ
+    ];
+}
+
+function snapToTriangle (u, v) {
+    let d = Math.max((u + v - 1.0) / 2.0, 0.0);
+    return [
+        clamp01(u - d),
+        clamp01(v - d)
+    ];
+}

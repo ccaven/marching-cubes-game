@@ -369,8 +369,6 @@ class MarchingCubes {
 
         if (!et) return;
 
-        let nt = tempArr.length;
-
         for (let i = 0; lookup.triTable[cubeIndex][i] !== -1 && i < 12; i += 3) {
             let i1 = lookup.triTable[cubeIndex][i],
                 i2 = lookup.triTable[cubeIndex][i+1],
@@ -380,16 +378,9 @@ class MarchingCubes {
             let v2 = this.lerpVerts(lookup.checks[i2 * 2], lookup.checks[i2 * 2 + 1], ix, iy, iz);
             let v3 = this.lerpVerts(lookup.checks[i3 * 2], lookup.checks[i3 * 2 + 1], ix, iy, iz);
 
-            tempArr[nt + 0] = v1[0];
-            tempArr[nt + 1] = v1[1];
-            tempArr[nt + 2] = v1[2];
-            tempArr[nt + 3] = v2[0];
-            tempArr[nt + 4] = v2[1];
-            tempArr[nt + 5] = v2[2];
-            tempArr[nt + 6] = v3[0];
-            tempArr[nt + 7] = v3[1];
-            tempArr[nt + 8] = v3[2];
-            nt += 9;
+            tempArr.push(...v1);
+            tempArr.push(...v2);
+            tempArr.push(...v3)
         }
     }
 
@@ -424,24 +415,12 @@ class MarchingCubes {
             vec3.normalize(n, n);
             vec3.scale(n, n, -1);
 
-            normals[i] = n[0];
-            normals[i+1] = n[1];
-            normals[i+2] = n[2];
-
-            normals[i+3] = n[0];
-            normals[i+4] = n[1];
-            normals[i+5] = n[2];
-
-            normals[i+6] = n[0];
-            normals[i+7] = n[1];
-            normals[i+8] = n[2];
-
-
+            normals.set(n, i);
+            normals.set(n, i + 3);
+            normals.set(n, i + 6);
         }
 
         mesh.setNormals(normals);
-        //mesh.setNormals(Mesh.FLAT);
         tempArr = null;
-
     }
 }

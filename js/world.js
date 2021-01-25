@@ -44,10 +44,11 @@ function mapGradient (x, y, z) {
     );
 }
 
+function clamp01 (x) {
+    return Math.max(Math.min(x, 1.0), 0.0);
+}
+
 let triangleSDF = (function () {
-
-    /* TOOD: finish copying glsl sdf */
-
     let ba = vec3.create();
     let pa = vec3.create();
 
@@ -69,13 +70,27 @@ let triangleSDF = (function () {
 
         vec3.cross(nor, ba, ac);
 
-        let conditional = Math.sign(vec3.dot(vec3.cross(ba, nor), pa)) + Math.sign(vec3.dot(vec3.cross(cb, nor), pb)) + Math.sign(vec3.dot(vec3.cross(ac, nor), pc)) < 2.0;
+        let conditional = Math.sign(vec3.dot(vec3.cross(ba, nor), pa)) +
+            Math.sign(vec3.dot(vec3.cross(cb, nor), pb)) +
+            Math.sign(vec3.dot(vec3.cross(ac, nor), pc)) < 2.0;
 
         if (conditional) {
+            let x_dp = clamp01(vec3.dot(ba, pa) / vec3.sqrLen(ba));
+            let y_dp = clamp01(vec3.dot(cb, pb) / vec3.sqrLen(cb));
+            let z_dp = clamp01(vec3.dot(ac, pc) / vec3.sqrLen(ac));
 
+            vec3.scale(ba, ba, x_dp);
+            vec3.sub(ba, ba, pa);
 
+            vec3.scale(cb, cb, y_dp);
+            vec3.sub(cb, cb, pb);
 
-        }
+            vec3.scale(ac, ac, z_dp);
+            vec3.sub(ac, ac, pc);
+
+            return Math.min(vec3.sqrLen(ba), vec3.sqrLen(cb), vec3.sqrLen(ac));
+
+        } else return vec3.dot(nor, pa) * vec3.dot(nor, pa) / vec3.sqrLen(nor);
     };
 }) ();
 
@@ -106,25 +121,12 @@ class Chunk {
     }
 
     collideWithPlayer () {
+        // Check bounding box
 
-        // local reference
-        let tris = this.mesh.triangles;
-        let verts = this.mesh.vertices;
+        if (Math.abs(player.x - this.x + CHUNK_SIZE / 2.0) > CHUNK_SIZE / 2.0 + player.radius) return;
+        if (Math.abs(player.z - this.z + CHUNK_SIZE / 2.0) > CHUNK_SIZE / 2.0 + player.radius) return;
 
-        let v0 = vec3.create();
-        let v1 = vec3.create();
-        let v2 = vec3.create();
-
-        for (let i = 0; i < tris.length; i += 3) {
-
-            vec3.set(v0, verts[tris[i]*3], verts[tris[i]*3+1], verts[tris[i]*3+2]);
-            vec3.set(v0, verts[tris[i+1]*3], verts[tris[i+1]*3+1], verts[tris[i+1]*3+2]);
-            vec3.set(v0, verts[tris[i+2]*3], verts[tris[i+2]*3+1], verts[tris[i+2]*3+2]);
-
-            // check for collision
-
-
-        }
+        this.mesh.collideWithPlayer();
 
     }
 
@@ -245,6 +247,7 @@ class World {
     render () {
         for (let i = 0; i < this.chunks.length; i ++) {
             this.chunks[i].render();
+            this.chunks[i].collideWithPlayer();
         }
     }
 

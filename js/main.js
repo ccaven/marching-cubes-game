@@ -9,7 +9,7 @@ const CHUNK_HEIGHT = 64;
 const INTERPOLATION = 1.0;
 const RENDER_DISTANCE = 200;
 const ISO_LEVEL = 0.0;
-const PLAYER_SPEED = 0.25;
+const PLAYER_SPEED = 0.1;
 const SCALE = 1.0;
 const OFFSET = vec3.fromValues(0, 0, 0);
 
@@ -125,7 +125,7 @@ const player = {
     velocity: vec3.fromValues(0, 0, 0),
 
     /* Spherical hitbox */
-    radius: 1.0,
+    radius: 5.0,
 
     setCamera () {
         camera.x = this.x;
@@ -194,15 +194,13 @@ function main () {
     world.fillLoadingQueue();
     world.loadChunks();
 
-    /*
-    let box = parseObj(PLANE_OBJ);
+
+    let box = parseObj(BOX_OBJ);
+    box.setPosition(0, 10, 0);
     box.setNormals(Mesh.FLAT);
     box.setColorsByFunction(() => vec3.fromValues(0.8, 0.8, 0.8));
     box.setBuffers();
-    box.position[1] -= 10;
 
-    console.log(box);
-    */
 
     function render () {
 
@@ -213,13 +211,20 @@ function main () {
         player.setCamera();
 
 
-        world.fillLoadingQueue();
-        world.loadChunks();
+        //world.fillLoadingQueue();
+        //world.loadChunks();
 
-        world.render();
+        //world.render();
+
+        box.render();
+        box.collideWithPlayer();
 
         if (input.mouseDown) {
-            let t = world.raycast();
+            let origin = vec3.fromValues(player.x, player.y, player.z);
+            let direction = vec3.fromValues(camera.projectionMatrix[2], camera.projectionMatrix[6], camera.projectionMatrix[10]);
+
+            console.log(origin, direction);
+            let t = box.raycast(origin, direction);
             console.log(t);
         }
 
