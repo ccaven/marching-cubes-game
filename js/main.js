@@ -210,23 +210,25 @@ function main () {
         player.controls();
         player.setCamera();
 
+        if (!false) {
+            world.fillLoadingQueue();
+            world.loadChunks();
 
-        //world.fillLoadingQueue();
-        //world.loadChunks();
-
-        //world.render();
-
-        box.render();
-        box.collideWithPlayer();
-
-        if (input.mouseDown) {
-            let origin = vec3.fromValues(player.x, player.y, player.z);
-            let direction = vec3.fromValues(camera.projectionMatrix[2], camera.projectionMatrix[6], camera.projectionMatrix[10]);
-
-            console.log(origin, direction);
-            let t = box.raycast(origin, direction);
-            console.log(t);
+            world.render();
+            world.collideWithPlayer();
+        } else {
+            box.render();
+            box.collideWithPlayer();
         }
+
+        // if (input.mouseDown) {
+        //     let origin = vec3.fromValues(player.x, player.y, player.z);
+        //     let direction = vec3.fromValues(camera.projectionMatrix[2], camera.projectionMatrix[6], camera.projectionMatrix[10]);
+
+        //     console.log(origin, direction);
+        //     let t = box.raycast(origin, direction);
+        //     console.log(t);
+        // }
 
         input.update();
 

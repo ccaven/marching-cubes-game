@@ -176,8 +176,6 @@ class World {
                 let cx = px + dx * CHUNK_SIZE;
                 let cz = pz + dz * CHUNK_SIZE;
 
-
-
                 if (this.chunkExists(cx, cz)) {
 
                     let referenceIndex = cx + "," + cz;
@@ -198,10 +196,32 @@ class World {
         return mt > 0 ? mt : null;
     }
 
+    collideWithPlayer () {
+
+        let px = Math.floor(player.x / CHUNK_SIZE) * CHUNK_SIZE;
+        let pz = Math.floor(player.z / CHUNK_SIZE) * CHUNK_SIZE;
+
+        for (let dx = -1; dx <= 1; dx ++) {
+            for (let dz = -1; dz <= 1; dz ++) {
+
+                let cx = px + dx * CHUNK_SIZE;
+                let cz = pz + dz * CHUNK_SIZE;
+
+                if (this.chunkExists(cx, cz)) {
+
+                    let chunkIndex = this.chunkReference[cx + "," + cz];
+                    if (chunkIndex > 0) {
+                        this.chunks[chunkIndex].mesh.collideWithPlayer();
+                    }
+                }
+            }
+        }
+
+    }
+
     render () {
         for (let i = 0; i < this.chunks.length; i ++) {
             this.chunks[i].render();
-            this.chunks[i].collideWithPlayer();
         }
     }
 
