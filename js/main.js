@@ -156,7 +156,6 @@ const player = {
         if (input.keys.s) this.applyForce(-st, 0, ct);
         if (input.keys.d) this.applyForce(ct, 0, st);
 
-
         if (input.keys[" "]) this.applyForce(0, PLAYER_SPEED, 0);
 
         if (input.keys.shift) this.applyForce(0, -PLAYER_SPEED, 0);

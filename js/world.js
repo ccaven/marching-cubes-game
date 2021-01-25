@@ -44,6 +44,48 @@ function mapGradient (x, y, z) {
     );
 }
 
+const palette = {
+    greyDark : vec3.fromValues(0.075, 0.05, 0.1),
+    greyMedium : vec3.fromValues(0.3, 0.4, 0.5),
+    greyLight : vec3.fromValues(0.6, 0.7, 0.75),
+    greyExtra : vec3.fromValues(0.89, 0.9, 0.88),
+    blueDark : vec3.fromValues(0.0, 0.2, 0.4),
+    blueMedium : vec3.fromValues(0.1, 0.35, 0.6),
+    blueLight : vec3.fromValues(0.25, 0.5, 0.7),
+    turquoiseDark : vec3.fromValues(0.2, 0.4, 0.5),
+    turquoiseMedium : vec3.fromValues(0.3, 0.55, 0.6),
+    turquoiseLight : vec3.fromValues(0.45, 0.7, 0.65),
+    greenDark : vec3.fromValues(0.2, 0.45, 0.35),
+    greenMedium : vec3.fromValues(0.35, 0.6, 0.4),
+    greenLight : vec3.fromValues(0.6, 0.8, 0.5),
+    greenExtra : vec3.fromValues(0.75, 0.9, 0.55),
+    pinkDark : vec3.fromValues(0.45, 0.25, 0.6),
+    pinkMedium : vec3.fromValues(0.6, 0.3, 0.6),
+    pinkLight : vec3.fromValues(0.7, 0.4, 0.65),
+    pinkExtra : vec3.fromValues(0.8, 0.5, 0.65)
+};
+
+
+function colorDefinition (x, y, z) {
+
+    let n = noise3D(x * 0.05, y * 0.05, z * 0.05);
+
+    // Purple Rock
+    if (n > 0.5) {
+
+        let n2 = noise3D(x * 0.05 + 100, y * 0.05, z * 0.05 + 100);
+        return n2 > 0.5 ? palette.pinkDark : palette.pinkMedium;
+
+    }
+
+    // Gray rock
+    else {
+        let n2 = noise3D(x * 0.05 + 100, y * 0.05, z * 0.05 + 100);
+        return n2 > 0.5 ? palette.greyLight : palette.greyMedium;
+    }
+
+}
+
 function clamp01 (x) {
     return Math.max(Math.min(x, 1.0), 0.0);
 }
@@ -67,9 +109,7 @@ class Chunk {
     generateMesh () {
         this.generator.fillMesh(this.mesh);
 
-        this.mesh.setColorsByFunction((x, y, z) => {
-            return vec3.fromValues(1.0, 1.0, 1.0);
-        });
+        this.mesh.setColorsByFunction(colorDefinition);
 
         this.mesh.setBuffers();
     }

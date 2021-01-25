@@ -172,18 +172,34 @@ class Mesh {
                 player.y = this.position[1] + cy + dy / dst * player.radius;
                 player.z = this.position[2] + cz + dz / dst * player.radius;
 
-                // Correct velocity
+                // Calculate friction
                 dst = 1 / dst;
-
                 [dx, dy, dz] = [dx * dst, dy * dst, dz * dst];
 
-                let dp = dx * player.velocity[0] + dy * player.velocity[1] + dz * player.velocity[2];
+                /*
+                let [ix, iy, iz] = player.velocity;
+                let f_normal = -(ix * dx + iy * dy + iz * dz);
+                let mu = 0.2;
+                */
 
+                // Correct velocity
+                let dp = dx * player.velocity[0] + dy * player.velocity[1] + dz * player.velocity[2];
                 dp *= (this.elastic + 1.0);
 
                 player.velocity[0] -= dp * dx;
                 player.velocity[1] -= dp * dy;
                 player.velocity[2] -= dp * dz;
+
+                // Apply friction
+                /*
+                let im = Math.sqrt(ix * ix + iy * iy + iz * iz);
+                if (im > 0) {
+                    im = 1.0 / Math.sqrt(im);
+                    player.velocity[0] -= ix * im * f_normal * mu;
+                    player.velocity[1] -= iy * im * f_normal * mu;
+                    player.velocity[2] -= iz * im * f_normal * mu;
+                }
+                */
 
             }
         }
