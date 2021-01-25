@@ -378,9 +378,7 @@ class MarchingCubes {
             let v2 = this.lerpVerts(lookup.checks[i2 * 2], lookup.checks[i2 * 2 + 1], ix, iy, iz);
             let v3 = this.lerpVerts(lookup.checks[i3 * 2], lookup.checks[i3 * 2 + 1], ix, iy, iz);
 
-            tempArr.push(...v1);
-            tempArr.push(...v2);
-            tempArr.push(...v3)
+            tempArr.push(...v1, ...v2, ...v3);
         }
     }
 

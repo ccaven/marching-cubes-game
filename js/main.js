@@ -9,7 +9,7 @@ const CHUNK_HEIGHT = 64;
 const INTERPOLATION = 1.0;
 const RENDER_DISTANCE = 200;
 const ISO_LEVEL = 0.0;
-const PLAYER_SPEED = 0.1;
+const PLAYER_SPEED = 30.0;
 const SCALE = 1.0;
 const OFFSET = vec3.fromValues(0, 0, 0);
 
@@ -106,7 +106,7 @@ const camera = {
     FOV: Math.PI * 0.50,
     zNear: 0.3,
     zFar: 300.0,
-    sensitivity: 1.0,
+    sensitivity: 0.05,
     projectionMatrix: mat4.create(),
     constructMatrix() {
         mat4.perspective(this.projectionMatrix, this.FOV, ASPECT, this.zNear, this.zFar);
@@ -123,9 +123,11 @@ const camera = {
 const player = {
     x: 0, y: 10, z: 0,
     velocity: vec3.fromValues(0, 0, 0),
+    acceleration: vec3.fromValues(0, 0, 0),
 
     /* Spherical hitbox */
     radius: 5.0,
+    mass: 1.0,
 
     setCamera () {
         camera.x = this.x;
@@ -136,39 +138,48 @@ const player = {
         camera.setMatrix();
     },
 
-    controls () {
-        camera.pitch += input.movementY * 0.001 * camera.sensitivity;
-        camera.yaw += input.movementX * 0.001 * camera.sensitivity;
+    applyForce (x, y, z) {
+        this.acceleration[0] += x / this.mass;
+        this.acceleration[1] += y / this.mass;
+        this.acceleration[2] += z / this.mass;
+    },
 
-        if (input.keys.w) {
-            this.velocity[0] += Math.sin(camera.yaw) * PLAYER_SPEED;
-            this.velocity[2] -= Math.cos(camera.yaw) * PLAYER_SPEED;
+    controls (dt) {
+        camera.pitch += input.movementY * dt * camera.sensitivity;
+        camera.yaw += input.movementX * dt * camera.sensitivity;
+
+        let ct = Math.cos(camera.yaw) * PLAYER_SPEED;
+        let st = Math.sin(camera.yaw) * PLAYER_SPEED;
+
+        if (input.keys.w) this.applyForce(st, 0, -ct);
+        if (input.keys.a) this.applyForce(-ct, 0, -st);
+        if (input.keys.s) this.applyForce(-st, 0, ct);
+        if (input.keys.d) this.applyForce(ct, 0, st);
+
+
+        if (input.keys[" "]) this.applyForce(0, PLAYER_SPEED, 0);
+
+        if (input.keys.shift) this.applyForce(0, -PLAYER_SPEED, 0);
+
+        this.applyForce(0, -9.81 * this.mass, 0);
+
+        this.velocity[0] += this.acceleration[0] * dt;
+        this.velocity[1] += this.acceleration[1] * dt;
+        this.velocity[2] += this.acceleration[2] * dt;
+
+        this.acceleration[0] = 0;
+        this.acceleration[1] = 0;
+        this.acceleration[2] = 0;
+
+        const n = 3;
+        for (let i = 0; i < n; i ++) {
+
+            world.collideWithPlayer();
+            this.x += dt * this.velocity[0] / n;
+            this.y += dt * this.velocity[1] / n;
+            this.z += dt * this.velocity[2] / n;
+
         }
-
-        if (input.keys.s) {
-            this.velocity[0] -= Math.sin(camera.yaw) * PLAYER_SPEED;
-            this.velocity[2] += Math.cos(camera.yaw) * PLAYER_SPEED;
-        }
-
-        if (input.keys.d) {
-            this.velocity[0] += Math.cos(camera.yaw) * PLAYER_SPEED;
-            this.velocity[2] += Math.sin(camera.yaw) * PLAYER_SPEED;
-        }
-
-        if (input.keys.a) {
-            this.velocity[0] -= Math.cos(camera.yaw) * PLAYER_SPEED;
-            this.velocity[2] -= Math.sin(camera.yaw) * PLAYER_SPEED;
-        }
-
-        if (input.keys[" "]) this.velocity[1] += PLAYER_SPEED;
-
-        if (input.keys.shift) this.velocity[1] -= PLAYER_SPEED;
-
-        this.velocity[1] -= 0.01;
-
-        this.x += this.velocity[0];
-        this.y += this.velocity[1];
-        this.z += this.velocity[2];
     }
 
 };
@@ -200,19 +211,21 @@ function main () {
     box.setBuffers();
 
 
-    function render () {
+    let then = 0;
+    function render (now) {
+        let dt = (now - then) * 0.001;
+        then = now;
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-        player.controls();
+        player.controls(dt);
         player.setCamera();
 
         world.fillLoadingQueue();
         world.loadChunks();
 
         world.render();
-        world.collideWithPlayer();
 
 
         if (input.mouseDown) {
