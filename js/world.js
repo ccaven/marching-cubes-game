@@ -48,52 +48,6 @@ function clamp01 (x) {
     return Math.max(Math.min(x, 1.0), 0.0);
 }
 
-let triangleSDF = (function () {
-    let ba = vec3.create();
-    let pa = vec3.create();
-
-    let cb = vec3.create();
-    let pb = vec3.create();
-
-    let ac = vec3.create();
-    let pc = vec3.create();
-
-    let nor = vec3.create();
-
-    return function (p, a, b, c) {
-        vec3.sub(ba, b, a);
-        vec3.sub(pa, p, a);
-        vec3.sub(cb, c, b);
-        vec3.sub(pb, p, b);
-        vec3.sub(ac, a, c);
-        vec3.sub(pc, p, c);
-
-        vec3.cross(nor, ba, ac);
-
-        let conditional = Math.sign(vec3.dot(vec3.cross(ba, nor), pa)) +
-            Math.sign(vec3.dot(vec3.cross(cb, nor), pb)) +
-            Math.sign(vec3.dot(vec3.cross(ac, nor), pc)) < 2.0;
-
-        if (conditional) {
-            let x_dp = clamp01(vec3.dot(ba, pa) / vec3.sqrLen(ba));
-            let y_dp = clamp01(vec3.dot(cb, pb) / vec3.sqrLen(cb));
-            let z_dp = clamp01(vec3.dot(ac, pc) / vec3.sqrLen(ac));
-
-            vec3.scale(ba, ba, x_dp);
-            vec3.sub(ba, ba, pa);
-
-            vec3.scale(cb, cb, y_dp);
-            vec3.sub(cb, cb, pb);
-
-            vec3.scale(ac, ac, z_dp);
-            vec3.sub(ac, ac, pc);
-
-            return Math.min(vec3.sqrLen(ba), vec3.sqrLen(cb), vec3.sqrLen(ac));
-
-        } else return vec3.dot(nor, pa) * vec3.dot(nor, pa) / vec3.sqrLen(nor);
-    };
-}) ();
-
 class Chunk {
     constructor (x, z) {
 
