@@ -206,9 +206,14 @@ class Mesh {
             let d = intersectTriangle(origin, direction,
                 this.vertices.slice(i0 * 3, i0 * 3 + 3),
                 this.vertices.slice(i1 * 3, i1 * 3 + 3),
-                this.vertices.slice(i2 * 3, i1 * 3 + 3));
+                this.vertices.slice(i2 * 3, i2 * 3 + 3));
 
-            if (d && d > 0 && (!minDist || minDist > d)) minDist = d;
+            if (d) {
+                console.log(d);
+
+                if (!minDist) minDist = d;
+                else if (d < minDist) minDist = d;
+            }
         }
 
         return minDist;

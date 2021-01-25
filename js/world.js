@@ -182,13 +182,15 @@ class World {
 
                     let chunkIndex = this.chunkReference[referenceIndex];
 
-                    let chunk = this.chunks[chunkIndex];
+                    if (chunkIndex >= 0) {
+                        let chunk = this.chunks[chunkIndex];
 
-                    let t = chunk.mesh.raycast(ro, rd);
+                        let t = chunk.mesh.raycast(ro, rd);
 
-                    console.log(t);
+                        console.log(t);
 
-                    if (t && t > 0 && (mt < 0 || mt > t)) mt = t;
+                        if (t && (mt < 0 || mt > t)) mt = t;
+                    }
                 }
             }
         }
@@ -210,7 +212,8 @@ class World {
                 if (this.chunkExists(cx, cz)) {
 
                     let chunkIndex = this.chunkReference[cx + "," + cz];
-                    if (chunkIndex > 0) {
+
+                    if (chunkIndex >= 0) {
                         this.chunks[chunkIndex].mesh.collideWithPlayer();
                     }
                 }
