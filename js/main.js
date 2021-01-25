@@ -164,9 +164,7 @@ const player = {
 
         if (input.keys.shift) this.velocity[1] -= PLAYER_SPEED;
 
-        this.velocity[0] *= 0.9;
-        this.velocity[1] *= 0.9;
-        this.velocity[2] *= 0.9;
+        this.velocity[1] -= 0.01;
 
         this.x += this.velocity[0];
         this.y += this.velocity[1];
