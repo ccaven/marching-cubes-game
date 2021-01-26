@@ -310,7 +310,10 @@ const lookup = {
 class MarchingCubes {
     constructor (width, height, depth) {
         this.size = [width, height, depth];
+
         this.voxels = new Array3D(width + 1, height + 1, depth + 1);
+
+        this.reference = {};
     }
 
     fillVoxels (f, offset) {
@@ -369,6 +372,8 @@ class MarchingCubes {
 
         if (!et) return;
 
+        let startingVerts = "";
+
         for (let i = 0; lookup.triTable[cubeIndex][i] !== -1 && i < 12; i += 3) {
             let i1 = lookup.triTable[cubeIndex][i],
                 i2 = lookup.triTable[cubeIndex][i+1],
@@ -377,21 +382,26 @@ class MarchingCubes {
             let v1 = this.lerpVerts(lookup.checks[i1 * 2], lookup.checks[i1 * 2 + 1], ix, iy, iz);
             let v2 = this.lerpVerts(lookup.checks[i2 * 2], lookup.checks[i2 * 2 + 1], ix, iy, iz);
             let v3 = this.lerpVerts(lookup.checks[i3 * 2], lookup.checks[i3 * 2 + 1], ix, iy, iz);
-
+            startingVerts += Math.floor(tempArr.length / 3) + ",";
             tempArr.push(...v1, ...v2, ...v3);
         }
+
+        if (startingVerts.length) startingVerts = startingVerts.slice(0, startingVerts.length - 1);
+
+        return startingVerts;
     }
 
     /**
      *
      * @param {Mesh} mesh
      */
-    fillMesh (mesh) {
+    fillMesh (mesh, referenceArray) {
         let tempArr = [];
         for (let x = 0; x < this.size[0]; x ++) {
             for (let y = 0; y < this.size[1]; y ++) {
                 for (let z = 0; z < this.size[2]; z ++) {
-                    this.marchCube(x, y, z, tempArr);
+                    let startingIndices = this.marchCube(x, y, z, tempArr);
+                    if (startingIndices && startingIndices.length) referenceArray[x + "," + y + "," + z] = startingIndices;
                 }
             }
         }

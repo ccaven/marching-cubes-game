@@ -100,6 +100,8 @@ class Chunk {
         this.mesh = new Mesh([this.x, this.y, this.z]);
 
         this.generator = new MarchingCubes(CHUNK_SIZE, CHUNK_HEIGHT, CHUNK_SIZE);
+
+        this.triangleReference = {};
     }
 
     populateMap (f) {
@@ -107,21 +109,11 @@ class Chunk {
     }
 
     generateMesh () {
-        this.generator.fillMesh(this.mesh);
+        this.generator.fillMesh(this.mesh, this.triangleReference);
 
         this.mesh.setColorsByFunction(colorDefinition);
 
         this.mesh.setBuffers();
-    }
-
-    collideWithPlayer () {
-        // Check bounding box
-
-        if (Math.abs(player.x - this.x + CHUNK_SIZE / 2.0) > CHUNK_SIZE / 2.0 + player.radius) return;
-        if (Math.abs(player.z - this.z + CHUNK_SIZE / 2.0) > CHUNK_SIZE / 2.0 + player.radius) return;
-
-        this.mesh.collideWithPlayer();
-
     }
 
     render () {
@@ -227,8 +219,6 @@ class World {
 
                         let t = chunk.mesh.raycast(ro, rd);
 
-                        console.log(t);
-
                         if (t && (mt < 0 || mt > t)) mt = t;
                     }
                 }
@@ -239,6 +229,7 @@ class World {
     }
 
     collideWithPlayer () {
+
 
         let px = Math.floor(player.x / CHUNK_SIZE) * CHUNK_SIZE;
         let pz = Math.floor(player.z / CHUNK_SIZE) * CHUNK_SIZE;
@@ -259,6 +250,102 @@ class World {
                 }
             }
         }
+
+
+        /*
+        let px = Math.floor(player.x);
+        let py = Math.floor(player.y);
+        let pz = Math.floor(player.z);
+        let pr = Math.ceil(player.radius);
+        for (let dx = -pr; dx <= pr; dx ++) {
+            for (let dy = -pr; dy <= pr; dy ++) {
+                for (let dz = -pr; dz <= pr; dz ++) {
+
+                    // Calculate which chunk it is in
+                    let cx = Math.floor((px + dx) / CHUNK_SIZE) * CHUNK_SIZE;
+                    let cz = Math.floor((pz + dz) / CHUNK_SIZE) * CHUNK_SIZE;
+
+                    if (!this.chunkExists(cx, cz)) continue;
+
+                    let chunkIndex = this.chunkReference[cx + "," + cz];
+                    if (chunkIndex < 0) continue;
+
+                    let chunk = this.chunks[chunkIndex];
+
+                    // Calculate which box it is in
+                    let [lx, ly, lz] = [px + dx - chunk.x, py + dy - chunk.y, pz + pz - chunk.z];
+
+                    // Calculate which triangles are there
+                    let triangle_reference_index = lx + "," + ly + "," + lz;
+                    if (!chunk.triangleReference.hasOwnProperty(triangle_reference_index)) continue;
+
+                    let triangleStarts = chunk.triangleReference[triangle_reference_index].split(",");
+
+                    // Collide with triangles
+                    let verts = chunk.mesh.vertices;
+                    let tris = chunk.mesh.triangles;
+                    let normals = chunk.mesh.normals;
+
+                    let ox = player.x - chunk.x;
+                    let oy = player.y - chunk.y;
+                    let oz = player.z - chunk.z;
+
+                    for (let j = 0; j < triangleStarts.length; j ++) {
+
+                        let i = Number(triangleStarts[j]);
+
+                        let [i0, i1, i2] = tris.slice(i, i + 3);
+
+                        let [v0x, v0y, v0z] = verts.slice(i0 * 3, i0 * 3 + 3);
+                        let [v1x, v1y, v1z] = verts.slice(i1 * 3, i1 * 3 + 3);
+                        let [v2x, v2y, v2z] = verts.slice(i2 * 3, i2 * 3 + 3);
+
+                        let [normalX, normalY, normalZ] = normals.slice(i0 * 3, i0 * 3 + 3);
+
+                        let [d0x, d0y, d0z] = [v1x - v0x, v1y - v0y, v1z - v0z];
+                        let [d1x, d1y, d1z] = [v2x - v0x, v2y - v0y, v2z - v0z];
+
+                        let [localX, localY, localZ] = [ox - v0x, oy - v0y, oz - v0z];
+                        let [planeX, planeY, planeZ] = projectToPlane(localX, localY, localZ, normalX, normalY, normalZ);
+
+                        let u = planeX * d0x + planeY * d0y + planeZ * d0z;
+                        let v = planeX * d1x + planeY * d1y + planeZ * d1z;
+                        [u, v] = snapToTriangle(u, v);
+
+                        let [_cx, _cy, _cz] = [
+                            v0x + d0x * u + d1x * v,
+                            v0y + d0y * u + d1y * v,
+                            v0z + d0z * u + d1z * v
+                        ];
+
+                        let [_dx, _dy, _dz] = [ox - _cx, oy - _cy, oz - _cz];
+
+                        let dstSquared = _dx * _dx + _dy * _dy + _dz * _dz;
+
+                        if (dstSquared > player.radius * player.radius) continue;
+
+                        let dst = Math.sqrt(dstSquared);
+
+                        player.x = chunk.x + _cx + _dx / dst * player.radius;
+                        player.y = chunk.y + _cy + _dy / dst * player.radius;
+                        player.z = chunk.z + _cz + _dz / dst * player.radius;
+
+                        dst = 1 / dst;
+                        [_dx, _dy, _dz] = [_dx * dst, _dy * dst, _dz * dst];
+
+                        let dp = _dx * player.velocity[0] + _dy * player.velocity[1] + _dz * player.velocity[2];
+                        dp *= (chunk.mesh.elastic + 1.0);
+
+                        player.velocity[0] -= dp * _dx;
+                        player.velocity[1] -= dp * _dy;
+                        player.velocity[2] -= dp * _dz;
+                    }
+
+                }
+            }
+
+        }
+        */
 
     }
 

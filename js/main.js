@@ -27,7 +27,7 @@ const program = createProgramObject(gl, "terrain.vsh", "terrain.fsh");
 /* Holds environment variables */
 const environment = {
     clock: 0.0,
-    lightDirection: vec3.fromValues(0.0, 1.0, 0.0)
+    lightDirection: vec3.fromValues(0.0, 1.0, 0.0),
 };
 
 /* Handles input */
