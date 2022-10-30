@@ -1,15 +1,9 @@
 # marching-cubes-game
 
-## Overview
+Minimal infinite-world procedural generation with marching cubes.
 
-WebGL-based HTML5 single-player game.
+Controls:
+ - WASD + Space (fly) + Shift (fly downwards)
 
-## Contributors
- - xacer
- - Ethan Kim
- - Green Ghost
- - Phi
- - Daniel
- - JentGent
-
+Link: https://ccaven.github.io/marching-cubes-game/
 
